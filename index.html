@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D Platformer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #1e1e2e;
+    }
+
+    canvas {
+      display: block;
+      margin: auto;
+      background-color: #333;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 800;
+    canvas.height = 400;
+
+    // Character sprite data
+    const characterSprites = {
+      idle: new Image(),
+      walk: new Image()
+    };
+
+    characterSprites.idle.src = './idle.gif'; // Add the correct filename for idle animation
+    characterSprites.walk.src = './walk.gif'; // Add the correct filename for walking animation
+
+    const frameData = {
+      idle: { width: 32, height: 32, frames: 4 },
+      walk: { width: 32, height: 32, frames: 4 }
+    };
+
+    // Game variables
+    let frameIndex = 0;
+    let frameCount = 0;
+    let animation = 'idle';
+
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height - 60,
+      width: 32,
+      height: 32,
+      velocityX: 0,
+      velocityY: 0,
+      speed: 2,
+      gravity: 0.5,
+      grounded: false
+    };
+
+    const keys = {
+      w: false,
+      a: false,
+      s: false,
+      d: false
+    };
+
+    // Load the game world
+    const platform = {
+      x: 0,
+      y: canvas.height - 50,
+      width: canvas.width,
+      height: 50
+    };
+
+    // Event listeners
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'w') keys.w = true;
+      if (e.key === 'a') keys.a = true;
+      if (e.key === 's') keys.s = true;
+      if (e.key === 'd') keys.d = true;
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'w') keys.w = false;
+      if (e.key === 'a') keys.a = false;
+      if (e.key === 's') keys.s = false;
+      if (e.key === 'd') keys.d = false;
+    });
+
+    function updatePlayer() {
+      // Apply horizontal movement
+      if (keys.a) {
+        player.velocityX = -player.speed;
+        animation = 'walk';
+      } else if (keys.d) {
+        player.velocityX = player.speed;
+        animation = 'walk';
+      } else {
+        player.velocityX = 0;
+        animation = 'idle';
+      }
+
+      // Apply jump
+      if (keys.w && player.grounded) {
+        player.velocityY = -10;
+        player.grounded = false;
+      }
+
+      // Apply gravity
+      player.velocityY += player.gravity;
+
+      // Update position
+      player.x += player.velocityX;
+      player.y += player.velocityY;
+
+      // Check collision with the platform
+      if (
+        player.y + player.height >= platform.y &&
+        player.x + player.width >= platform.x &&
+        player.x <= platform.x + platform.width
+      ) {
+        player.y = platform.y - player.height;
+        player.velocityY = 0;
+        player.grounded = true;
+      } else {
+        player.grounded = false;
+      }
+
+      // Keep the player in bounds
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+      if (player.y > canvas.height) player.y = canvas.height - player.height;
+    }
+
+    function drawPlayer() {
+      const sprite = characterSprites[animation];
+      const { width, height, frames } = frameData[animation];
+      const frameX = (frameIndex % frames) * width;
+
+      ctx.drawImage(
+        sprite,
+        frameX,
+        0,
+        width,
+        height,
+        player.x,
+        player.y,
+        player.width,
+        player.height
+      );
+    }
+
+    function drawPlatform() {
+      ctx.fillStyle = '#555';
+      ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      updatePlayer();
+      drawPlatform();
+      drawPlayer();
+
+      frameCount++;
+      if (frameCount % 10 === 0) {
+        frameIndex++;
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start the game loop when images are loaded
+    characterSprites.idle.onload = () => {
+      characterSprites.walk.onload = () => {
+        gameLoop();
+      };
+    };
+  </script>
+</body>
+</html>
